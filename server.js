@@ -1,5 +1,5 @@
 // Hindi exam app — zero-dependency Node server (Node 18+).
-// Users, password hashes, sessions and results are kept in DATA_DIR/db.json.
+// Users, password hashes, sessions and results: PostgreSQL (DATABASE_URL) or DATA_DIR/exam-db.json.
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -10,18 +10,32 @@ const DATA = path.join(process.env.DATA_DIR || path.join(__dirname, "data"), "ex
 const PUBLIC = path.join(__dirname, "public");
 const SESSION_DAYS = 60;
 
-function load() {
-  try { return JSON.parse(fs.readFileSync(DATA, "utf8")); } catch { return { users: {}, sessions: {} }; }
+// Storage: PostgreSQL when DATABASE_URL is set (survives redeploys), otherwise a local JSON file.
+const DB_URL = process.env.DATABASE_URL;
+const pool = DB_URL ? new (require("pg").Pool)({ connectionString: DB_URL, ssl: /sslmode=require/.test(DB_URL) ? { rejectUnauthorized: false } : false }) : null;
+let db = { users: {}, sessions: {} };
+async function load() {
+  if (pool) {
+    await pool.query("CREATE TABLE IF NOT EXISTS exam_store (id text PRIMARY KEY, data jsonb NOT NULL)");
+    const r = await pool.query("SELECT data FROM exam_store WHERE id='main'");
+    if (r.rows[0]) db = r.rows[0].data;
+  } else {
+    try { db = JSON.parse(fs.readFileSync(DATA, "utf8")); } catch {}
+  }
 }
-let db = load();
-let saveTimer = null;
+let saveTimer = null, saving = Promise.resolve();
 function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    fs.mkdirSync(path.dirname(DATA), { recursive: true });
-    const tmp = DATA + ".tmp";
-    fs.writeFileSync(tmp, JSON.stringify(db), { mode: 0o600 });
-    fs.renameSync(tmp, DATA);
+    const json = JSON.stringify(db);
+    saving = saving.then(async () => {
+      if (pool) await pool.query("INSERT INTO exam_store (id, data) VALUES ('main', $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data", [json]);
+      else {
+        fs.mkdirSync(path.dirname(DATA), { recursive: true });
+        fs.writeFileSync(DATA + ".tmp", json, { mode: 0o600 });
+        fs.renameSync(DATA + ".tmp", DATA);
+      }
+    }).catch(e => console.error("save failed:", e.message));
   }, 50);
 }
 
@@ -66,7 +80,7 @@ const publicUser = u => ({ username: u.username, name: u.name, created: u.create
 
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8" };
 
-http.createServer(async (req, res) => {
+load().then(() => http.createServer(async (req, res) => {
   const p = new URL(req.url, "http://x").pathname;
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
   try {
@@ -88,9 +102,7 @@ http.createServer(async (req, res) => {
       return send(res, 401, { error: "यूज़रनेम या पासवर्ड गलत है" });
     }
     if (p === "/api/health") {
-      let mounts = [];
-      try { mounts = fs.readFileSync("/proc/mounts", "utf8").split("\n").map(l => l.split(" ")[1]).filter(m => m && /^\/(data|app|usr\/src|home|root|mnt|srv|var\/lib)/.test(m)); } catch {}
-      return send(res, 200, { ok: true, dataDir: path.dirname(DATA), users: Object.keys(db.users).length, mounts });
+      return send(res, 200, { ok: true, storage: pool ? "postgres" : "file" });
     }
     if (p.startsWith("/api/")) {
       const s = currentUser(req);
@@ -121,4 +133,4 @@ http.createServer(async (req, res) => {
   } catch (e) {
     send(res, 500, { error: e.message });
   }
-}).listen(PORT, "0.0.0.0", () => console.log("Hindi exam app on http://localhost:" + PORT));
+}).listen(PORT, "0.0.0.0", () => console.log("Hindi exam app on http://localhost:" + PORT))).catch(e => { console.error("startup failed:", e.message); process.exit(1); });

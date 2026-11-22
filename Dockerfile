@@ -1,5 +1,6 @@
 FROM node:20-alpine
 WORKDIR /app
+RUN npm install --omit=dev pg@8.13.1 --no-audit --no-fund
 COPY server.js ./
 COPY index.html ./public/
 COPY css ./public/css
