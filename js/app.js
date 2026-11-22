@@ -1,10 +1,13 @@
 // ===== Data & storage =====
-const BANK = window.UP_PGT_2026.map(q => ({ ...q, id: "uppgt26-" + q.n }));
+const BANK26 = window.UP_PGT_2026.map(q => ({ ...q, id: "uppgt26-" + q.n }));
+const BANK16 = window.UP_PGT_2016.map(q => ({ ...q, id: "uppgt16-" + q.n }));
+const BANK = [...BANK26, ...BANK16];
 const TOPICS = [...new Set(BANK.map(q => q.t))];
 const LETTERS = ["A", "B", "C", "D"];
 
 const EXAMS = [
-  { id: "uppgt26", title: "UP PGT 2026 हिंदी (10 मई, शिफ्ट 2)", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न", mins: 120, pick: () => BANK },
+  { id: "uppgt26", title: "UP PGT 2026 हिंदी (10 मई, शिफ्ट 2)", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न", mins: 120, pick: () => BANK26 },
+  { id: "uppgt16", title: "UP PGT 2016 हिंदी", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न (व्याख्या सहित)", mins: 120, pick: () => BANK16 },
   { id: "mock30", title: "त्वरित मॉक टेस्ट", desc: "प्रश्न-बैंक से 30 यादृच्छिक प्रश्न", mins: 30, pick: () => shuffle(BANK).slice(0, 30) },
   ...TOPICS.map(t => ({ id: "topic:" + t, title: t + " — अभ्यास", desc: "विषयवार प्रश्न", topic: t, mins: 0, pick: () => BANK.filter(q => q.t === t) })),
 ];
@@ -98,6 +101,7 @@ function home() {
     </div></div>
   <div class="grid">
     <div class="card"><h3>📝 पूर्ण प्रश्न-पत्र</h3><p class="mute">UP PGT 2026 हिंदी — 125 प्रश्न, 120 मिनट</p><button class="btn" onclick="startExam('uppgt26')">परीक्षा शुरू करें</button></div>
+    <div class="card"><h3>📝 पूर्ण प्रश्न-पत्र 2016</h3><p class="mute">UP PGT 2016 हिंदी — 125 प्रश्न, 120 मिनट</p><button class="btn" onclick="startExam('uppgt16')">परीक्षा शुरू करें</button></div>
     <div class="card"><h3>⚡ त्वरित मॉक</h3><p class="mute">30 यादृच्छिक प्रश्न, 30 मिनट</p><button class="btn" onclick="startExam('mock30')">शुरू करें</button></div>
     <div class="card"><h3>🔁 गलतियाँ दोहराएँ</h3><p class="mute">${wrong} प्रश्न जो पिछली बार गलत हुए</p><button class="btn sec" ${wrong ? "" : "disabled"} onclick="startExam('wrong')">अभ्यास करें</button></div>
   </div>
@@ -155,7 +159,7 @@ function renderExam() {
         if (shown) c = k === q.a ? "right" : (a === k ? "wrong" : "");
         return `<button class="opt ${c}" ${shown ? "disabled" : ""} onclick="pick(${k})"><b>(${LETTERS[k]})</b>${esc(o)}</button>`;
       }).join("")}
-      ${shown ? `<p style="font-weight:600;color:${a === q.a ? "var(--ok)" : "var(--bad)"}">${a === q.a ? "✔ सही उत्तर!" : "✘ गलत। सही उत्तर: (" + LETTERS[q.a] + ") " + esc(q.o[q.a])}</p>` : ""}
+      ${shown ? `<p style="font-weight:600;color:${a === q.a ? "var(--ok)" : "var(--bad)"}">${a === q.a ? "✔ सही उत्तर!" : "✘ गलत। सही उत्तर: (" + LETTERS[q.a] + ") " + esc(q.o[q.a])}</p>${q.e ? `<p class="mute">💡 ${esc(q.e)}</p>` : ""}` : ""}
       <div class="row">
         <button class="btn ghost" ${S.i ? "" : "disabled"} onclick="nav(-1)">← पिछला</button>
         ${S.practice ? "" : `<button class="btn ghost" onclick="clearAns()">उत्तर हटाएँ</button><button class="btn ghost" onclick="toggleMark()">${S.mark[S.i] ? "समीक्षा हटाएँ" : "समीक्षा हेतु चिह्नित"}</button>`}
@@ -225,7 +229,7 @@ function result(idx) {
       <details class="rv ${d.ok ? "ok" : ""}"><summary>${d.ok ? "✔" : d.ans === null ? "○" : "✘"} ${k + 1}. ${esc(q.q.slice(0, 90))}${q.q.length > 90 ? "…" : ""}</summary>
         <p class="qtext" style="font-size:17px">${esc(q.q)}</p>
         ${q.o.map((o, j) => `<div class="opt ${j === q.a ? "right" : j === d.ans ? "wrong" : ""}"><b>(${LETTERS[j]})</b>${esc(o)}</div>`).join("")}
-        <p class="mute">आपका उत्तर: ${d.ans === null ? "अनुत्तरित" : LETTERS[d.ans]} · सही: ${LETTERS[q.a]} · विषय: ${q.t}</p>
+        <p class="mute">आपका उत्तर: ${d.ans === null ? "अनुत्तरित" : LETTERS[d.ans]} · सही: ${LETTERS[q.a]} · विषय: ${q.t}</p>${q.e ? `<p class="mute">💡 ${esc(q.e)}</p>` : ""}
       </details>`; }).join("")}
   </div>`;
 }
