@@ -87,6 +87,11 @@ http.createServer(async (req, res) => {
       failed(ip);
       return send(res, 401, { error: "यूज़रनेम या पासवर्ड गलत है" });
     }
+    if (p === "/api/health") {
+      let mounts = [];
+      try { mounts = fs.readFileSync("/proc/mounts", "utf8").split("\n").map(l => l.split(" ")[1]).filter(m => m && /^\/(data|app|usr\/src|home|root|mnt|srv|var\/lib)/.test(m)); } catch {}
+      return send(res, 200, { ok: true, dataDir: path.dirname(DATA), users: Object.keys(db.users).length, mounts });
+    }
     if (p.startsWith("/api/")) {
       const s = currentUser(req);
       if (!s || !s.user) return send(res, 401, { error: "कृपया लॉगिन करें" });
