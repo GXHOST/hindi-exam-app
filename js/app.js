@@ -1,13 +1,17 @@
 // ===== Data & storage =====
 const BANK26 = window.UP_PGT_2026.map(q => ({ ...q, id: "uppgt26-" + q.n }));
 const BANK16 = window.UP_PGT_2016.map(q => ({ ...q, id: "uppgt16-" + q.n }));
-const BANK = [...BANK26, ...BANK16];
+const BANK21 = window.UP_PGT_2021.map(q => ({ ...q, id: "uppgt21-" + q.n }));
+const BANK13 = window.UP_PGT_2013.map(q => ({ ...q, id: "uppgt13-" + q.n }));
+const BANK = [...BANK26, ...BANK21, ...BANK16, ...BANK13];
 const TOPICS = [...new Set(BANK.map(q => q.t))];
 const LETTERS = ["A", "B", "C", "D"];
 
 const EXAMS = [
   { id: "uppgt26", title: "UP PGT 2026 हिंदी (10 मई, शिफ्ट 2)", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न", mins: 120, pick: () => BANK26 },
   { id: "uppgt16", title: "UP PGT 2016 हिंदी", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न (व्याख्या सहित)", mins: 120, pick: () => BANK16 },
+  { id: "uppgt21", title: "UP PGT 2021 हिंदी", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न (व्याख्या सहित)", mins: 120, pick: () => BANK21 },
+  { id: "uppgt13", title: "UP PGT 2013 हिंदी", desc: "पूर्ण प्रश्न-पत्र — 125 प्रश्न (व्याख्या सहित)", mins: 120, pick: () => BANK13 },
   { id: "mock30", title: "त्वरित मॉक टेस्ट", desc: "प्रश्न-बैंक से 30 यादृच्छिक प्रश्न", mins: 30, pick: () => shuffle(BANK).slice(0, 30) },
   ...TOPICS.map(t => ({ id: "topic:" + t, title: t + " — अभ्यास", desc: "विषयवार प्रश्न", topic: t, mins: 0, pick: () => BANK.filter(q => q.t === t) })),
 ];
@@ -102,6 +106,8 @@ function home() {
   <div class="grid">
     <div class="card"><h3>📝 पूर्ण प्रश्न-पत्र</h3><p class="mute">UP PGT 2026 हिंदी — 125 प्रश्न, 120 मिनट</p><button class="btn" onclick="startExam('uppgt26')">परीक्षा शुरू करें</button></div>
     <div class="card"><h3>📝 पूर्ण प्रश्न-पत्र 2016</h3><p class="mute">UP PGT 2016 हिंदी — 125 प्रश्न, 120 मिनट</p><button class="btn" onclick="startExam('uppgt16')">परीक्षा शुरू करें</button></div>
+    <div class="card"><h3>📝 पूर्ण प्रश्न-पत्र 2021</h3><p class="mute">UP PGT 2021 हिंदी — 125 प्रश्न, 120 मिनट</p><button class="btn" onclick="startExam('uppgt21')">परीक्षा शुरू करें</button></div>
+    <div class="card"><h3>📝 पूर्ण प्रश्न-पत्र 2013</h3><p class="mute">UP PGT 2013 हिंदी — 125 प्रश्न, 120 मिनट</p><button class="btn" onclick="startExam('uppgt13')">परीक्षा शुरू करें</button></div>
     <div class="card"><h3>⚡ त्वरित मॉक</h3><p class="mute">30 यादृच्छिक प्रश्न, 30 मिनट</p><button class="btn" onclick="startExam('mock30')">शुरू करें</button></div>
     <div class="card"><h3>🔁 गलतियाँ दोहराएँ</h3><p class="mute">${wrong} प्रश्न जो पिछली बार गलत हुए</p><button class="btn sec" ${wrong ? "" : "disabled"} onclick="startExam('wrong')">अभ्यास करें</button></div>
   </div>
